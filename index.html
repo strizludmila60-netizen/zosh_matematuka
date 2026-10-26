@@ -115,8 +115,8 @@
             currentColor = color;
         }
 
-        function drawGrid() {
-            // 1. Обов'язково заливаємо полотно білим кольором, щоб картинка збереглася на білому тлі
+       function drawGrid() {
+            // 1. Обов'язково заливаємо полотно білим кольором
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -137,18 +137,28 @@
                 ctx.stroke();
             }
 
-            // 3. Відображаємо завдання чітко з білою плашкою без темної прозорості
+            // 3. Відображаємо завдання з автоматичним зменшенням (якщо воно завелике)
             if (currentImage) {
                 const imgX = 20;
                 const imgY = 20;
 
-                // Біла підкладка під завдання, щоб сітка не перекривала текст умови
+                // Максимальна ширина для картинки завдання (наприклад, 600 пікселів або половина екрана)
+                let imgWidth = currentImage.width;
+                let imgHeight = currentImage.height;
+                const maxWidth = Math.min(650, canvas.width - 40);
+
+                if (imgWidth > maxWidth) {
+                    const ratio = maxWidth / imgWidth;
+                    imgWidth = maxWidth;
+                    imgHeight = imgHeight * ratio;
+                }
+
+                // Біла підкладка під завдання
                 ctx.fillStyle = '#ffffff';
-                ctx.fillRect(imgX - 5, imgY - 5, currentImage.width + 10, currentImage.height + 10);
+                ctx.fillRect(imgX - 5, imgY - 5, imgWidth + 10, imgHeight + 10);
                 
-                ctx.globalAlpha = 0.95;
-                ctx.drawImage(currentImage, imgX, imgY);
-                ctx.globalAlpha = 1.0;
+                // Малюємо зменшену картинку
+                ctx.drawImage(currentImage, imgX, imgY, imgWidth, imgHeight);
             }
         }
 
