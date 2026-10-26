@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Цифровий зошит (Вебверсія)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .toolbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #ddd;
+            padding: 8px 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .bottom-bar {
+            border-top: 1px solid #ddd;
+            border-bottom: none;
+            justify-content: space-between;
+        }
+        button {
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.85; }
+        .btn-task { background-color: #e8f0fe; color: #1a73e8; }
+        .btn-color { color: white; }
+        .btn-black { background-color: black; }
+        .btn-red { background-color: red; }
+        .btn-blue { background-color: blue; }
+        .btn-green { background-color: green; }
+        .btn-clear { background-color: #fce8e6; color: #d93025; }
+        .btn-save { background-color: #e6f4ea; color: #137333; }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            margin: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <button class="btn-task" onclick="loadTask('task1.png')">Завдання 1</button>
+        <button class="btn-task" onclick="loadTask('task2.png')">Завдання 2</button>
+        <button class="btn-task" onclick="loadTask('task3.png')">Завдання 3</button>
+        <button class="btn-task" onclick="loadTask('task4.png')">Завдання 4</button>
+        <button class="btn-task" onclick="loadTask('task5.png')">Завдання 5</button>
+        <button class="btn-task" onclick="loadTask('task6.png')">Завдання 6</button>
+    </div>
+
+    <div class="canvas-container" id="container">
+        <canvas id="paintCanvas"></canvas>
+    </div>
+
+    <div class="toolbar bottom-bar">
+        <div>
+            <button class="btn-color btn-black" onclick="setColor('black')">Чорний</button>
+            <button class="btn-color btn-red" onclick="setColor('red')">Червоний</button>
+            <button class="btn-color btn-blue" onclick="setColor('blue')">Синій</button>
+            <button class="btn-color btn-green" onclick="setColor('green')">Зелений</button>
+            <button class="btn-clear" onclick="clearCanvas()">Очистити</button>
+        </div>
+        <div>
+            <button class="btn-save" onclick="saveAsImage()">💾 Зберегти роботу</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('container');
+
+        let currentColor = 'black';
+        let currentImage = null;
+        let painting = false;
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            drawGrid();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function setColor(color) {
+            currentColor = color;
+        }
+
+        function drawGrid() {
+            // 1. Обов'язково заливаємо полотно білим кольором, щоб картинка збереглася на білому тлі
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Малюємо світло-блакитну сітку зошита
+            ctx.strokeStyle = '#d0e0f0';
+            ctx.lineWidth = 1;
+
+            for (let x = 0; x < canvas.width; x += 25) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 25) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // 3. Відображаємо завдання чітко з білою плашкою без темної прозорості
+            if (currentImage) {
+                const imgX = 20;
+                const imgY = 20;
+
+                // Біла підкладка під завдання, щоб сітка не перекривала текст умови
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(imgX - 5, imgY - 5, currentImage.width + 10, currentImage.height + 10);
+                
+                ctx.globalAlpha = 0.95;
+                ctx.drawImage(currentImage, imgX, imgY);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function loadTask(filename) {
+            const img = new Image();
+            img.src = filename;
+            img.onload = function() {
+                currentImage = img;
+                drawGrid();
+            };
+            img.onerror = function() {
+                alert("Не вдалося завантажити файл завдання: " + filename);
+            }
+        }
+
+        function clearCanvas() {
+            drawGrid();
+        }
+
+        function saveAsImage() {
+            // Створюємо тимчасовий полотно для збереження з чисто білим фоном
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Заливаємо білим
+            tempCtx.fillStyle = '#ffffff';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            // Переносимо все малювання з основного полотна
+            tempCtx.drawImage(canvas, 0, 0);
+
+            const link = document.createElement('a');
+            link.download = 'rozvjazok_zavdannya.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function startPosition(e) {
+            e.preventDefault();
+            painting = true;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function endPosition(e) {
+            e.preventDefault();
+            painting = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!painting) return;
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            ctx.lineWidth = 3; // Збільшено товщину лінії для кращої читабельності
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = currentColor;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        canvas.addEventListener('pointerdown', startPosition);
+        canvas.addEventListener('pointerup', endPosition);
+        canvas.addEventListener('pointermove', draw);
+        canvas.addEventListener('pointercancel', endPosition);
+
+        // Початкова ініціалізація
+        resizeCanvas();
+    </script>
+</body>
+</html>
